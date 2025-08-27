@@ -231,11 +231,10 @@ function App() {
   }
 
   return (
-    <div style={{ fontFamily: 'sans-serif', padding: 24 }}>
-      <h1>Advent of Code — Leaderboard (Stars Earned Per Year)</h1>
-      <div
-        style={{ marginBottom: 24, display: 'flex', gap: 16, alignItems: 'center' }}
-      >
+    <div className="page-theme">
+      <h1>Advent of Code — Leaderboard</h1>
+      <div className="subheading">Stars Earned Per Year</div>
+      <div className="filters">
         <label>
           Start Date:{' '}
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
@@ -252,7 +251,7 @@ function App() {
             max={25}
             value={startDay}
             onChange={e => setStartDay(e.target.value.replace(/[^0-9]/g, ''))}
-            style={{ width: 60 }}
+            className="day-input"
             placeholder="1"
           />
         </label>
@@ -264,19 +263,27 @@ function App() {
             max={25}
             value={endDay}
             onChange={e => setEndDay(e.target.value.replace(/[^0-9]/g, ''))}
-            style={{ width: 60 }}
+            className="day-input"
             placeholder="25"
           />
         </label>
         <button type="button" onClick={handleClear}>Reset</button>
       </div>
       {filterError &&
-        <div style={{ color: 'red', paddingBottom: 8, fontSize: 14 }}>{filterError}</div>
+        <div className="filter-error">{filterError}</div>
       }
-      <div ref={leaderboardRef} style={{ background: '#fff', padding: 16, borderRadius: 8, boxShadow: '0 2px 8px #0002', display: 'inline-block' }}>
-        <table border={1} cellPadding={8} cellSpacing={0} style={{ borderCollapse: 'collapse', fontSize: 15, minWidth: 640 }}>
+      <button 
+        className="export-btn"
+        type="button"
+        style={{ margin: "0 0 16px 0", display: "block", marginLeft: "auto", marginRight: "auto" }} 
+        onClick={handleExport}
+      >
+        Export Table as Image
+      </button>
+      <div ref={leaderboardRef} className="leaderboard-panel">
+        <table className="leaderboard-table" border={1} cellPadding={8} cellSpacing={0}>
           <thead>
-            <tr style={{ backgroundColor: '#FAE57E' }}>
+            <tr className="header-row">
               <th>#</th>
               <th>Name</th>
               {yearLabels.map((label, idx) => (
@@ -289,24 +296,18 @@ function App() {
             {leaderboard
               .filter(m => m.total > 0)
               .map((m, i) => (
-                <tr key={m.id} style={i < 3 ? { fontWeight: 'bold', background: '#f8f8f1' } : {}}>
+                <tr key={m.id}>
                   <td>{i + 1}</td>
-                  <td>{m.name}</td>
+                  <td className={i < 3 ? 'gold-text' : undefined}>{m.name}</td>
                   {m.perYear.map((stars, idx) => (
-                    <td key={`year-${yearLabels[idx]}`}>{stars}</td>
+                    <td key={`year-${yearLabels[idx]}`} className={i < 3 ? 'gold-text' : undefined}>{stars}</td>
                   ))}
-                  <td>{m.total}</td>
+                  <td className={i < 3 ? 'gold-text' : undefined}>{m.total}</td>
                 </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p style={{ marginTop: 20, color: '#666', fontSize: 13 }}>
-        <b>Note:</b> This sums each user's stars per year based on the detailed Advent of Code exports.
-        Use the date filter above to focus on a custom date window across all years.<br/>
-        Please run <code>npm install html-to-image</code> in this app directory for export to PNG.
-        The PNG will be downloaded to your system; move or rename it as needed.
-      </p>
     </div>
   );
 }
