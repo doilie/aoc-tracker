@@ -26,18 +26,23 @@ const formatDate = (ts: number) => {
 };
 
 function App() {
+  // --- All Hook calls must appear first ---
   const [data, setData] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [availableFiles, setAvailableFiles] = useState<string[]>([]);
-  const [selectedFile, setSelectedFile] = useState<string>("");
+  const [selectedFile, setSelectedFile] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [startDay, setStartDay] = useState<string>('');
+  const [endDay, setEndDay] = useState<string>('');
   const [filteredMembers, setFilteredMembers] = useState<any[] | null>(null);
   const [filterActive, setFilterActive] = useState(false);
+  const [filterError, setFilterError] = useState<string | null>(null);
   const leaderboardRef = useRef<HTMLDivElement>(null);
+  const [yearlyData, setYearlyData] = useState<any[]>([]);
 
-  // Fetch the list of files for dropdown
+  // --- All useEffect calls after Hook calls ---
   useEffect(() => {
     fetch('/data/files.json')
       .then((res) => {
@@ -48,15 +53,6 @@ function App() {
       .catch(() => setAvailableFiles([]));
   }, []);
 
-  // Helper: Parse year from files like 20250822_2021.json
-  const extractYear = (filename: string) => {
-    const m = filename.match(/_(\d{4})\.json$/);
-    if (m) return m[1];
-    return null;
-  };
-
-  // Fetch all yearly files for per-year breakdown
-  const [yearlyData, setYearlyData] = useState<any[]>([]);
   useEffect(() => {
     setLoading(true);
     setError(null);
@@ -86,6 +82,39 @@ function App() {
       .catch(err => setError(String(err)))
       .finally(() => setLoading(false));
   }, [availableFiles]);
+
+  useEffect(() => {
+    // Helper: day to int
+    const getDayInt = (s: string) => {
+      const n = parseInt(s, 10);
+      return isNaN(n) ? null : n;
+    };
+    const intStartDay = getDayInt(startDay);
+    const intEndDay = getDayInt(endDay);
+    // Validate day values
+    if ((startDay && (!intStartDay || intStartDay < 1 || intStartDay > 25)) ||
+        (endDay && (!intEndDay || intEndDay < 1 || intEndDay > 25))) {
+      setFilterError('Day numbers must be between 1 and 25');
+      setFilterActive(false);
+      return;
+    }
+    if (intStartDay && intEndDay && intEndDay < intStartDay) {
+      setFilterError('Start Day must be less than or equal to End Day');
+      setFilterActive(false);
+      return;
+    }
+    setFilterError(null);
+    setFilterActive(Boolean(startDate || endDate || startDay || endDay));
+  }, [startDate, endDate, startDay, endDay]);
+
+  // --- All non-hook code goes below ---
+
+  // Helper: Parse year from files like 20250822_2021.json
+  const extractYear = (filename: string) => {
+    const m = filename.match(/_(\d{4})\.json$/);
+    if (m) return m[1];
+    return null;
+  };
 
   const handleExport = async () => {
     if (!leaderboardRef.current) return;
@@ -129,13 +158,30 @@ function App() {
     return { startTs, endTs };
   };
 
-  // Compute leaderboard with or without date filter
+  // Helper: day to int (outside useEffect, for logic)
+  const getDayInt = (s: string) => {
+    const n = parseInt(s, 10);
+    return isNaN(n) ? null : n;
+  };
+  const intStartDay = getDayInt(startDay);
+  const intEndDay = getDayInt(endDay);
+
+  // Compute leaderboard with or without date or day range filter
   const { startTs, endTs } = getRangeTimestamps(startDate, endDate);
-  const filterFn = (starTs: number) => {
+
+  const dateFilterFn = (starTs: number) => {
     if (startDate && startTs && starTs < startTs) return false;
     if (endDate && endTs && starTs > endTs) return false;
     return true;
   };
+  const isDayInRange = (day: string) => {
+    const dayInt = parseInt(day, 10);
+    if (!startDay && !endDay) return true;
+    if (intStartDay && dayInt < intStartDay) return false;
+    if (intEndDay && dayInt > intEndDay) return false;
+    return true;
+  };
+  const dayFilterActive = Boolean((startDay && intStartDay) || (endDay && intEndDay));
 
   let leaderboard: {
     id: string;
@@ -148,14 +194,17 @@ function App() {
     let perYear: number[] = [];
     yearlyData.forEach(yd => {
       const m = yd.members[id];
-      // Count stars as number of earned parts (from completion_day_level), with optional date filter
+      // Count stars as number of earned parts (from completion_day_level), with optional date and/or day filter
       let count = 0;
       if (m && m.completion_day_level) {
-        Object.values(m.completion_day_level).forEach((d: any) => {
-          Object.values(d).forEach((p: any) => {
-            if (p.get_star_ts && (!filterActive || filterFn(p.get_star_ts))) count += 1;
+        Object.entries(m.completion_day_level)
+          .forEach(([day, d]: [string, any]) => {
+            if (!dayFilterActive || isDayInRange(day)) {
+              Object.values(d).forEach((p: any) => {
+                if (p.get_star_ts && (!filterActive || dateFilterFn(p.get_star_ts))) count += 1;
+              });
+            }
           });
-        });
       }
       perYear.push(count);
     });
@@ -172,23 +221,20 @@ function App() {
     return b.total - a.total;
   });
 
-  // UI/handlers for date filter
-  function handleFilterSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setFilterActive(Boolean(startDate || endDate));
-  }
   function handleClear() {
     setStartDate('');
     setEndDate('');
+    setStartDay('');
+    setEndDay('');
     setFilterActive(false);
+    setFilterError(null);
   }
 
   return (
     <div style={{ fontFamily: 'sans-serif', padding: 24 }}>
       <h1>Advent of Code — Leaderboard (Stars Earned Per Year)</h1>
-      <form
+      <div
         style={{ marginBottom: 24, display: 'flex', gap: 16, alignItems: 'center' }}
-        onSubmit={handleFilterSubmit}
       >
         <label>
           Start Date:{' '}
@@ -198,9 +244,35 @@ function App() {
           End Date:{' '}
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
         </label>
-        <button type="submit">Submit</button>
-        <button type="button" onClick={handleClear}>Clear</button>
-      </form>
+        <label>
+          Start Day:{' '}
+          <input
+            type="number"
+            min={1}
+            max={25}
+            value={startDay}
+            onChange={e => setStartDay(e.target.value.replace(/[^0-9]/g, ''))}
+            style={{ width: 60 }}
+            placeholder="1"
+          />
+        </label>
+        <label>
+          End Day:{' '}
+          <input
+            type="number"
+            min={1}
+            max={25}
+            value={endDay}
+            onChange={e => setEndDay(e.target.value.replace(/[^0-9]/g, ''))}
+            style={{ width: 60 }}
+            placeholder="25"
+          />
+        </label>
+        <button type="button" onClick={handleClear}>Reset</button>
+      </div>
+      {filterError &&
+        <div style={{ color: 'red', paddingBottom: 8, fontSize: 14 }}>{filterError}</div>
+      }
       <div ref={leaderboardRef} style={{ background: '#fff', padding: 16, borderRadius: 8, boxShadow: '0 2px 8px #0002', display: 'inline-block' }}>
         <table border={1} cellPadding={8} cellSpacing={0} style={{ borderCollapse: 'collapse', fontSize: 15, minWidth: 640 }}>
           <thead>
