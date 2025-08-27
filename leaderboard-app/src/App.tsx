@@ -285,16 +285,18 @@ function App() {
               <th>Total Stars</th>
             </tr>
           </thead>
-          <tbody>
-            {leaderboard.map((m, i) => (
-              <tr key={m.id} style={i < 3 ? { fontWeight: 'bold', background: '#f8f8f1' } : {}}>
-                <td>{i + 1}</td>
-                <td>{m.name}</td>
-                {m.perYear.map((stars, idx) => (
-                  <td key={`year-${yearLabels[idx]}`}>{stars}</td>
-                ))}
-                <td>{m.total}</td>
-              </tr>
+<tbody>
+            {leaderboard
+              .filter(m => m.total > 0)
+              .map((m, i) => (
+                <tr key={m.id} style={i < 3 ? { fontWeight: 'bold', background: '#f8f8f1' } : {}}>
+                  <td>{i + 1}</td>
+                  <td>{m.name}</td>
+                  {m.perYear.map((stars, idx) => (
+                    <td key={`year-${yearLabels[idx]}`}>{stars}</td>
+                  ))}
+                  <td>{m.total}</td>
+                </tr>
             ))}
           </tbody>
         </table>
