@@ -39,6 +39,7 @@ function App() {
   const [filterError, setFilterError] = useState<string | null>(null);
   const leaderboardRef = useRef<HTMLDivElement>(null);
   const [yearlyData, setYearlyData] = useState<any[]>([]);
+  const [showYearlyBreakdown, setShowYearlyBreakdown] = useState(false);
 
   // --- All useEffect calls after Hook calls ---
   useEffect(() => {
@@ -222,7 +223,7 @@ function App() {
             <tr className="header-row">
               <th>#</th>
               <th>Name</th>
-              {yearLabels.map((label, idx) => (
+              {showYearlyBreakdown && yearLabels.map((label, idx) => (
                 <th key={`year-col-${label}`}>Stars {label}</th>
               ))}
               <th>Total Stars</th>
@@ -235,10 +236,10 @@ function App() {
                 <tr key={m.id}>
                   <td>{i + 1}</td>
                   <td className={i < 3 ? 'gold-text' : undefined}>{m.name}</td>
-                  {m.perYear.map((stars, idx) => (
+                  {showYearlyBreakdown && m.perYear.map((stars, idx) => (
                     <td key={`year-${yearLabels[idx]}`} className={i < 3 ? 'gold-text' : undefined}>{stars}</td>
                   ))}
-                  <td className={i < 3 ? 'gold-text' : undefined}>{m.total}</td>
+                  <td className={i < 3 ? 'gold-text' : undefined} onClick={() => setShowYearlyBreakdown(!showYearlyBreakdown)}>{m.total}</td>
                 </tr>
             ))}
           </tbody>
