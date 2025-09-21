@@ -223,7 +223,7 @@ function App() {
   return (
     <div className="page-theme">
       <h1>Advent of Code — Leaderboard</h1>
-      <div className="subheading">Stars Earned Per Year</div>
+      <div className="subheading">Stars Earned<br></br>(Click Total to Show Breakdown)</div>
       <div className="filters">
         <label>
           Start Date:{' '}
