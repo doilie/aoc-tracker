@@ -210,6 +210,9 @@ function App() {
     return b.total - a.total;
   });
 
+  const registeredMembers = leaderboard.filter(m => m.fullName !== 'Not Registered');
+  const unregisteredMembers = leaderboard.filter(m => m.fullName === 'Not Registered');
+
   function handleClear() {
     setStartDate('');
     setEndDate('');
@@ -244,6 +247,7 @@ function App() {
         Export Table as Image
       </button>
       <div ref={leaderboardRef} className="leaderboard-panel">
+        <h2>Registered Members</h2>
         <table className="leaderboard-table" border={1} cellPadding={8} cellSpacing={0}>
           <thead>
             <tr className="header-row">
@@ -256,20 +260,48 @@ function App() {
               <th>Total Stars</th>
             </tr>
           </thead>
-<tbody>
-            {leaderboard
+          <tbody>
+            {registeredMembers
               .filter(m => m.total > 0)
               .map((m, i) => (
                 <tr key={m.id}>
                   <td>{i + 1}</td>
-                  <td>{m.fullName}</td>
+                  <td className={i < 3 ? 'gold-text' : undefined}>{m.fullName}</td>
                   <td className={i < 3 ? 'gold-text' : undefined}>{m.name}</td>
                   {showYearlyBreakdown && m.perYear.map((stars, idx) => (
                     <td key={`year-${yearLabels[idx]}`} className={i < 3 ? 'gold-text' : undefined}>{stars}</td>
                   ))}
                   <td className={i < 3 ? 'gold-text' : undefined} onClick={() => setShowYearlyBreakdown(!showYearlyBreakdown)}>{m.total}</td>
                 </tr>
-            ))}
+              ))}
+          </tbody>
+        </table>
+
+        <h2 style={{ marginTop: '2rem' }}>Unregistered Members</h2>
+        <table className="leaderboard-table" border={1} cellPadding={8} cellSpacing={0}>
+          <thead>
+            <tr className="header-row">
+              <th>#</th>
+              <th>Name</th>
+              {showYearlyBreakdown && yearLabels.map((label, idx) => (
+                <th key={`year-col-${label}`}>Stars {label}</th>
+              ))}
+              <th>Total Stars</th>
+            </tr>
+          </thead>
+          <tbody>
+            {unregisteredMembers
+              .filter(m => m.total > 0)
+              .map((m, i) => (
+                <tr key={m.id}>
+                  <td>{i + 1}</td>
+                  <td>{m.name}</td>
+                  {showYearlyBreakdown && m.perYear.map((stars, idx) => (
+                    <td key={`year-${yearLabels[idx]}`} className={i < 3 ? 'gold-text' : undefined}>{stars}</td>
+                  ))}
+                  <td onClick={() => setShowYearlyBreakdown(!showYearlyBreakdown)}>{m.total}</td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </div>
