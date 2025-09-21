@@ -168,6 +168,7 @@ h1::after {
   display: flex;
   gap: 13px;
   align-items: flex-end;
+  justify-content: center;
   margin-bottom: 20px;
   flex-wrap: wrap;
   background: #13161c;
@@ -176,7 +177,7 @@ h1::after {
   border: 1.5px solid var(--accent-green);
   box-shadow: 0 3px 18px #00cc0030, 0 1.5px 2.2px #39733005;
   min-width: 250px;
-  max-width: 660px;
+  max-width: fit-content;
   margin-right: auto;
   margin-left: auto;
   position: relative;

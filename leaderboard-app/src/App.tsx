@@ -34,8 +34,6 @@ function App() {
   const [selectedFile, setSelectedFile] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [startDay, setStartDay] = useState<string>('');
-  const [endDay, setEndDay] = useState<string>('');
   const [filteredMembers, setFilteredMembers] = useState<any[] | null>(null);
   const [filterActive, setFilterActive] = useState(false);
   const [filterError, setFilterError] = useState<string | null>(null);
@@ -84,28 +82,9 @@ function App() {
   }, [availableFiles]);
 
   useEffect(() => {
-    // Helper: day to int
-    const getDayInt = (s: string) => {
-      const n = parseInt(s, 10);
-      return isNaN(n) ? null : n;
-    };
-    const intStartDay = getDayInt(startDay);
-    const intEndDay = getDayInt(endDay);
-    // Validate day values
-    if ((startDay && (!intStartDay || intStartDay < 1 || intStartDay > 25)) ||
-        (endDay && (!intEndDay || intEndDay < 1 || intEndDay > 25))) {
-      setFilterError('Day numbers must be between 1 and 25');
-      setFilterActive(false);
-      return;
-    }
-    if (intStartDay && intEndDay && intEndDay < intStartDay) {
-      setFilterError('Start Day must be less than or equal to End Day');
-      setFilterActive(false);
-      return;
-    }
     setFilterError(null);
-    setFilterActive(Boolean(startDate || endDate || startDay || endDay));
-  }, [startDate, endDate, startDay, endDay]);
+    setFilterActive(Boolean(startDate || endDate));
+  }, [startDate, endDate]);
 
   // --- All non-hook code goes below ---
 
@@ -158,13 +137,6 @@ function App() {
     return { startTs, endTs };
   };
 
-  // Helper: day to int (outside useEffect, for logic)
-  const getDayInt = (s: string) => {
-    const n = parseInt(s, 10);
-    return isNaN(n) ? null : n;
-  };
-  const intStartDay = getDayInt(startDay);
-  const intEndDay = getDayInt(endDay);
 
   // Compute leaderboard with or without date or day range filter
   const { startTs, endTs } = getRangeTimestamps(startDate, endDate);
@@ -174,14 +146,6 @@ function App() {
     if (endDate && endTs && starTs > endTs) return false;
     return true;
   };
-  const isDayInRange = (day: string) => {
-    const dayInt = parseInt(day, 10);
-    if (!startDay && !endDay) return true;
-    if (intStartDay && dayInt < intStartDay) return false;
-    if (intEndDay && dayInt > intEndDay) return false;
-    return true;
-  };
-  const dayFilterActive = Boolean((startDay && intStartDay) || (endDay && intEndDay));
 
   let leaderboard: {
     id: string;
@@ -198,12 +162,10 @@ function App() {
       let count = 0;
       if (m && m.completion_day_level) {
         Object.entries(m.completion_day_level)
-          .forEach(([day, d]: [string, any]) => {
-            if (!dayFilterActive || isDayInRange(day)) {
-              Object.values(d).forEach((p: any) => {
-                if (p.get_star_ts && (!filterActive || dateFilterFn(p.get_star_ts))) count += 1;
-              });
-            }
+          .forEach(([, d]: [string, any]) => {
+            Object.values(d).forEach((p: any) => {
+              if (p.get_star_ts && (!filterActive || dateFilterFn(p.get_star_ts))) count += 1;
+            });
           });
       }
       perYear.push(count);
@@ -224,8 +186,6 @@ function App() {
   function handleClear() {
     setStartDate('');
     setEndDate('');
-    setStartDay('');
-    setEndDay('');
     setFilterActive(false);
     setFilterError(null);
   }
@@ -242,30 +202,6 @@ function App() {
         <label>
           End Date:{' '}
           <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
-        </label>
-        <label>
-          Start Day:{' '}
-          <input
-            type="number"
-            min={1}
-            max={25}
-            value={startDay}
-            onChange={e => setStartDay(e.target.value.replace(/[^0-9]/g, ''))}
-            className="day-input"
-            placeholder="1"
-          />
-        </label>
-        <label>
-          End Day:{' '}
-          <input
-            type="number"
-            min={1}
-            max={25}
-            value={endDay}
-            onChange={e => setEndDay(e.target.value.replace(/[^0-9]/g, ''))}
-            className="day-input"
-            placeholder="25"
-          />
         </label>
         <button type="button" onClick={handleClear}>Reset</button>
       </div>
