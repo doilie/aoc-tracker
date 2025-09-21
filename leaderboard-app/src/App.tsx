@@ -40,25 +40,28 @@ function App() {
   const leaderboardRef = useRef<HTMLDivElement>(null);
   const [yearlyData, setYearlyData] = useState<any[]>([]);
   const [showYearlyBreakdown, setShowYearlyBreakdown] = useState(false);
-  const [registrationData, setRegistrationData] = useState<Record<string, string>>({});
+const [registrationData, setRegistrationData] = useState<Record<string, { fullName: string, level: string }>>({});
 
   // --- All useEffect calls after Hook calls ---
-  useEffect(() => {
+useEffect(() => {
     fetch('/AppPH_AoC_2025_Registration.csv')
       .then(response => response.text())
       .then(csvText => {
         const lines = csvText.split('\n');
         const headers = lines[0].split(',');
-        const usernameIndex = headers.indexOf('Username in AoC Leaderboard');
-        const fullNameIndex = headers.indexOf('Full Name');
-        const mapping: Record<string, string> = {};
+        const usernameIndex = headers.indexOf('"Username in AoC Leaderboard"');
+        const fullNameIndex = headers.indexOf('"Full Name"');
+        const levelIndex = headers.length - 1; // assume always last index - headers.indexOf('"What level will you be joining for the AoC Challenge?"');
+        // Store registration info as { [username]: { fullName, level } }
+        const mapping: Record<string, { fullName: string, level: string }> = {};
         for (let i = 1; i < lines.length; i++) {
           const currentline = lines[i].split(',');
-          if (currentline.length > Math.max(usernameIndex, fullNameIndex)) {
-            const username = currentline[usernameIndex].trim();
-            const fullName = currentline[fullNameIndex].trim();
+          if (currentline.length > Math.max(usernameIndex, fullNameIndex, levelIndex)) {
+            const username = currentline[usernameIndex].replaceAll('"', '').trim();
+            const fullName = currentline[fullNameIndex].replaceAll('"', '').trim();
+            const level = currentline[levelIndex]?.replaceAll('"', '').trim() || '';
             if (username) {
-              mapping[username] = fullName;
+              mapping[username] = { fullName, level };
             }
           }
         }
@@ -175,12 +178,15 @@ function App() {
     id: string;
     name: string;
     fullName: string;
+    level?: string;
     perYear: number[];
     total: number;
   }[] = [];
   allUserIds.forEach((id) => {
     const name = allUserInfo[id]?.name ?? id;
-    const fullName = registrationData[name] || 'Not Registered';
+    const reg = registrationData[name];
+    const fullName = reg?.fullName || 'Not Registered';
+    const level = reg?.level;
     let perYear: number[] = [];
     yearlyData.forEach(yd => {
       const m = yd.members[id];
@@ -200,6 +206,7 @@ function App() {
       id,
       name,
       fullName,
+      level,
       perYear,
       total: perYear.reduce((a, b) => a + b, 0)
     });
@@ -248,34 +255,49 @@ function App() {
       </button>
       <div ref={leaderboardRef} className="leaderboard-panel">
         <h2>Registered Members</h2>
-        <table className="leaderboard-table" border={1} cellPadding={8} cellSpacing={0}>
-          <thead>
-            <tr className="header-row">
-              <th>#</th>
-              <th>Full Name</th>
-              <th>Name</th>
-              {showYearlyBreakdown && yearLabels.map((label, idx) => (
-                <th key={`year-col-${label}`}>Stars {label}</th>
-              ))}
-              <th>Total Stars</th>
-            </tr>
-          </thead>
-          <tbody>
-            {registeredMembers
-              .filter(m => m.total > 0)
-              .map((m, i) => (
-                <tr key={m.id}>
-                  <td>{i + 1}</td>
-                  <td className={i < 3 ? 'gold-text' : undefined}>{m.fullName}</td>
-                  <td className={i < 3 ? 'gold-text' : undefined}>{m.name}</td>
-                  {showYearlyBreakdown && m.perYear.map((stars, idx) => (
-                    <td key={`year-${yearLabels[idx]}`} className={i < 3 ? 'gold-text' : undefined}>{stars}</td>
+        {(() => {
+          // Group registered members by level
+          const levelGroups: Record<string, typeof registeredMembers> = {};
+          registeredMembers.forEach(m => { // Removed .filter(m => m.total > 0) here
+              const level = m.level || 'Unspecified Level';
+              if (!levelGroups[level]) levelGroups[level] = [];
+              levelGroups[level].push(m);
+            });
+          // Render a table for each level group
+          return Object.entries(levelGroups).map(([level, members]) => (
+            <div key={level} style={{ marginBottom: '2rem' }}>
+              <h3 style={{ marginTop: '1.5rem' }}>{level}</h3>
+              <table className="leaderboard-table" border={1} cellPadding={8} cellSpacing={0}>
+                <thead>
+                  <tr className="header-row">
+                    <th>#</th>
+                    <th>Full Name</th>
+                    <th>Name</th>
+                    {showYearlyBreakdown && yearLabels.map((label, idx) => (
+                      <th key={`year-col-${label}`}>Stars {label}</th>
+                    ))}
+                    <th>Total Stars</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {members
+                    .filter(m => m.total > 0) // Filter for members with stars here
+                    .map((m, i) => (
+                    <tr key={m.id}>
+                      <td>{i + 1}</td>
+                      <td className={i < 3 ? 'gold-text' : undefined}>{m.fullName}</td>
+                      <td className={i < 3 ? 'gold-text' : undefined}>{m.name}</td>
+                      {showYearlyBreakdown && m.perYear.map((stars, idx) => (
+                        <td key={`year-${yearLabels[idx]}`} className={i < 3 ? 'gold-text' : undefined}>{stars}</td>
+                      ))}
+                      <td className={i < 3 ? 'gold-text' : undefined} onClick={() => setShowYearlyBreakdown(!showYearlyBreakdown)}>{m.total}</td>
+                    </tr>
                   ))}
-                  <td className={i < 3 ? 'gold-text' : undefined} onClick={() => setShowYearlyBreakdown(!showYearlyBreakdown)}>{m.total}</td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
+                </tbody>
+              </table>
+            </div>
+          ));
+        })()}
 
         <h2 style={{ marginTop: '2rem' }}>Unregistered Members</h2>
         <table className="leaderboard-table" border={1} cellPadding={8} cellSpacing={0}>
