@@ -40,8 +40,31 @@ function App() {
   const leaderboardRef = useRef<HTMLDivElement>(null);
   const [yearlyData, setYearlyData] = useState<any[]>([]);
   const [showYearlyBreakdown, setShowYearlyBreakdown] = useState(false);
+  const [registrationData, setRegistrationData] = useState<Record<string, string>>({});
 
   // --- All useEffect calls after Hook calls ---
+  useEffect(() => {
+    fetch('/AppPH_AoC_2025_Registration.csv')
+      .then(response => response.text())
+      .then(csvText => {
+        const lines = csvText.split('\n');
+        const headers = lines[0].split(',');
+        const usernameIndex = headers.indexOf('Username in AoC Leaderboard');
+        const fullNameIndex = headers.indexOf('Full Name');
+        const mapping: Record<string, string> = {};
+        for (let i = 1; i < lines.length; i++) {
+          const currentline = lines[i].split(',');
+          if (currentline.length > Math.max(usernameIndex, fullNameIndex)) {
+            const username = currentline[usernameIndex].trim();
+            const fullName = currentline[fullNameIndex].trim();
+            if (username) {
+              mapping[username] = fullName;
+            }
+          }
+        }
+        setRegistrationData(mapping);
+      });
+  }, []);
   useEffect(() => {
     fetch('/data/files.json')
       .then((res) => {
@@ -151,11 +174,13 @@ function App() {
   let leaderboard: {
     id: string;
     name: string;
+    fullName: string;
     perYear: number[];
     total: number;
   }[] = [];
   allUserIds.forEach((id) => {
     const name = allUserInfo[id]?.name ?? id;
+    const fullName = registrationData[name] || 'Not Registered';
     let perYear: number[] = [];
     yearlyData.forEach(yd => {
       const m = yd.members[id];
@@ -174,6 +199,7 @@ function App() {
     leaderboard.push({
       id,
       name,
+      fullName,
       perYear,
       total: perYear.reduce((a, b) => a + b, 0)
     });
@@ -222,6 +248,7 @@ function App() {
           <thead>
             <tr className="header-row">
               <th>#</th>
+              <th>Full Name</th>
               <th>Name</th>
               {showYearlyBreakdown && yearLabels.map((label, idx) => (
                 <th key={`year-col-${label}`}>Stars {label}</th>
@@ -235,6 +262,7 @@ function App() {
               .map((m, i) => (
                 <tr key={m.id}>
                   <td>{i + 1}</td>
+                  <td>{m.fullName}</td>
                   <td className={i < 3 ? 'gold-text' : undefined}>{m.name}</td>
                   {showYearlyBreakdown && m.perYear.map((stars, idx) => (
                     <td key={`year-${yearLabels[idx]}`} className={i < 3 ? 'gold-text' : undefined}>{stars}</td>
