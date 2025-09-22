@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 // import html-to-image types only after package is installed
 // import * as htmlToImage from 'html-to-image';
 import './App.css';
@@ -19,22 +19,16 @@ type LeaderboardData = {
   members: Record<string, Member>;
 };
 
-const formatDate = (ts: number) => {
-  if (!ts) return '';
-  const dt = new Date(ts * 1000);
-  return dt.toLocaleString();
-};
-
 function App() {
   // --- All Hook calls must appear first ---
-  const [data, setData] = useState<LeaderboardData | null>(null);
+  const [] = useState<LeaderboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [availableFiles, setAvailableFiles] = useState<string[]>([]);
-  const [selectedFile, setSelectedFile] = useState<string>('');
+  const [] = useState<string>('');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [filteredMembers, setFilteredMembers] = useState<any[] | null>(null);
+  const [] = useState<any[] | null>(null);
   const [filterActive, setFilterActive] = useState(false);
   const [filterError, setFilterError] = useState<string | null>(null);
   const leaderboardRef = useRef<HTMLDivElement>(null);
@@ -114,14 +108,6 @@ useEffect(() => {
   }, [startDate, endDate]);
 
   // --- All non-hook code goes below ---
-
-  // Helper: Parse year from files like 20250822_2021.json
-  const extractYear = (filename: string) => {
-    const m = filename.match(/_(\d{4})\.json$/);
-    if (m) return m[1];
-    return null;
-  };
-
   const handleExport = async () => {
     if (!leaderboardRef.current) return;
     // Dynamically import html-to-image so app won't crash if user hasn't installed yet
@@ -273,7 +259,7 @@ useEffect(() => {
                     <th>#</th>
                     <th>Full Name</th>
                     <th>Name</th>
-                    {showYearlyBreakdown && yearLabels.map((label, idx) => (
+                    {showYearlyBreakdown && yearLabels.map((label) => (
                       <th key={`year-col-${label}`}>Stars {label}</th>
                     ))}
                     <th>Total Stars</th>
@@ -305,7 +291,7 @@ useEffect(() => {
             <tr className="header-row">
               <th>#</th>
               <th>Name</th>
-              {showYearlyBreakdown && yearLabels.map((label, idx) => (
+              {showYearlyBreakdown && yearLabels.map((label) => (
                 <th key={`year-col-${label}`}>Stars {label}</th>
               ))}
               <th>Total Stars</th>
