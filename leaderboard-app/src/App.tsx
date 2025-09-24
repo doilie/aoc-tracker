@@ -45,7 +45,7 @@ useEffect(() => {
         const headers = lines[0].split(',');
         const usernameIndex = headers.indexOf('"Username in AoC Leaderboard"');
         const fullNameIndex = headers.indexOf('"Full Name"');
-        const levelIndex = headers.length - 1; // assume always last index - headers.indexOf('"What level will you be joining for the AoC Challenge?"');
+        const levelIndex = headers.indexOf('"What level will you be joining for the AoC Challenge?"');
         // Store registration info as { [username]: { fullName, level } }
         const mapping: Record<string, { fullName: string, level: string }> = {};
         for (let i = 1; i < lines.length; i++) {
