@@ -25,6 +25,14 @@ Make sure you have [Node.js](https://nodejs.org/en/) installed (v16+ recommended
 
 ---
 
+## Refreshing Registration Data
+
+Update the registration CSV by:
+1. Go to the [AppPH AoC 2025 Registration](https://oracle.enterprise.slack.com/lists/T7B18VD43/F09ER1WQP0B) Slack List
+2. Click on the triple-dot menu on the upper-right part of the page
+3. Select Download CSV > Download Without Archived Items
+4. Copy the contents of the downloaded CSV to leaderboard-app/public/AppPH_AoC_2025_Registration.csv
+
 ## Refreshing Leaderboard Data
 
 To update the leaderboard JSON data (2015–2024), run the `download_leaderboards.py` script.  
