@@ -258,7 +258,7 @@ useEffect(() => {
                   <tr className="header-row">
                     <th>#</th>
                     <th>Full Name</th>
-                    <th>Name</th>
+                    <th>AoC Username</th>
                     {showYearlyBreakdown && yearLabels.map((label) => (
                       <th key={`year-col-${label}`}>Stars {label}</th>
                     ))}
