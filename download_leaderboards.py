@@ -38,7 +38,7 @@ def fetch_and_save(year, session):
 def main():
     os.makedirs(DATA_DIR, exist_ok=True)
     session = get_session()
-    for year in range(2015, 2025):
+    for year in range(2015, 2026):
         fetch_and_save(year, session)
 
 if __name__ == "__main__":
