@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 // import html-to-image types only after package is installed
 // import * as htmlToImage from 'html-to-image';
 import './App.css';
+import Select from 'react-select';
 
 type Member = {
   id: string;
@@ -34,10 +35,25 @@ function App() {
   const leaderboardRef = useRef<HTMLDivElement>(null);
   const [yearlyData, setYearlyData] = useState<any[]>([]);
   const [showYearlyBreakdown, setShowYearlyBreakdown] = useState(false);
-const [registrationData, setRegistrationData] = useState<Record<string, { fullName: string, level: string }>>({});
+  const [registrationData, setRegistrationData] = useState<Record<string, { fullName: string, level: string }>>({});
+  // --- Year selection state ---
+  const [selectedYears, setSelectedYears] = useState<string[]>([]);
+  // For react-select: prepare options [{label, value}]
+  const yearOptions = yearlyData.map(y => ({
+    label: y.year, value: y.year,
+  }));
 
   // --- All useEffect calls after Hook calls ---
-useEffect(() => {
+  useEffect(() => {
+    // Set initial selected years to all years (init after yearlyData is loaded)
+    if (yearlyData.length && selectedYears.length === 0) {
+      setSelectedYears(yearlyData.map(y => y.year));
+    }
+  }, [yearlyData]);
+
+  // Helper to sync select's format
+  const selectedYearOptions = yearOptions.filter(opt => selectedYears.includes(opt.value));
+  useEffect(() => {
     fetch('/AppPH_AoC_2025_Registration.csv')
       .then(response => response.text())
       .then(csvText => {
@@ -160,6 +176,9 @@ useEffect(() => {
     return true;
   };
 
+  // Map yearLabels to indices of selectedYears for easy filtering
+  const selectedYearIndices = yearLabels.map((y, idx) => selectedYears.includes(y) ? idx : -1).filter(idx => idx !== -1);
+
   let leaderboard: {
     id: string;
     name: string;
@@ -167,6 +186,7 @@ useEffect(() => {
     level?: string;
     perYear: number[];
     total: number;
+    filteredPerYear: number[];
   }[] = [];
   allUserIds.forEach((id) => {
     const name = allUserInfo[id]?.name ?? id;
@@ -188,13 +208,19 @@ useEffect(() => {
       }
       perYear.push(count);
     });
+
+    // Only display total for selected years
+    const filteredPerYear = selectedYearIndices.map(idx => perYear[idx]);
+    const total = filteredPerYear.reduce((a, b) => a + b, 0);
+
     leaderboard.push({
       id,
       name,
       fullName,
       level,
-      perYear,
-      total: perYear.reduce((a, b) => a + b, 0)
+      perYear, // Still full for possible further use
+      total, // Only selected years
+      filteredPerYear // Store perYear for only selected years, for rendering
     });
   });
 
@@ -218,6 +244,117 @@ useEffect(() => {
       <h1>Advent of Code — Leaderboard</h1>
       <div className="subheading">Stars Earned<br></br>(Click Total to Show Breakdown)</div>
       <div className="filters">
+        {/* Year Selection UI - react-select */}
+        <div className="year-selection" style={{ marginBottom: '10px', width: "100%" }}>
+          <span style={{ marginRight: 8 }}>Select Years: </span>
+          <div style={{ display: "inline-block", width: "calc(100% - 200px)", verticalAlign: "middle", maxWidth: 600 }}>
+            <Select
+              isMulti
+              options={yearOptions}
+              value={selectedYearOptions}
+              onChange={(opts) =>
+                setSelectedYears(Array.isArray(opts) ? opts.map(o => o.value) : [])
+              }
+              placeholder="Select years..."
+              closeMenuOnSelect={false}
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  backgroundColor: "#23272c",
+                  color: "#eee",
+                  borderColor: "#444",
+                  minHeight: "38px",
+                  width: "100%",
+                }),
+                container: (base) => ({
+                  ...base,
+                  width: "100%",
+                  minWidth: 200,
+                  zIndex: 2
+                }),
+                menu: (base) => ({
+                  ...base,
+                  backgroundColor: "#23272c",
+                  color: "#eee",
+                  zIndex: 3
+                }),
+                option: (base, state) => ({
+                  ...base,
+                  backgroundColor: state.isSelected ? "#445" : (state.isFocused ? "#334" : "#23272c"),
+                  color: "#fff",
+                  cursor: "pointer"
+                }),
+                multiValue: (base) => ({
+                  ...base,
+                  backgroundColor: "#444",
+                  color: "#fff"
+                }),
+                multiValueLabel: (base) => ({
+                  ...base,
+                  color: "#fff"
+                }),
+                multiValueRemove: (base) => ({
+                  ...base,
+                  color: "#ffb",
+                  ":hover": {
+                    backgroundColor: "#222",
+                    color: "#fff"
+                  }
+                }),
+                placeholder: (base) => ({
+                  ...base,
+                  color: "#aaa"
+                }),
+                singleValue: (base) => ({
+                  ...base,
+                  color: "#fff"
+                }),
+                input: (base) => ({
+                  ...base,
+                  color: "#eee"
+                }),
+                dropdownIndicator: (base) => ({
+                  ...base,
+                  color: "#777"
+                }),
+                indicatorSeparator: (base) => ({
+                  ...base,
+                  backgroundColor: "#444"
+                }),
+                clearIndicator: (base) => ({
+                  ...base,
+                  color: "#777"
+                }),
+              }}
+              theme={theme => ({
+                ...theme,
+                colors: {
+                  ...theme.colors,
+                  neutral0: "#23272c",
+                  primary25: "#24324a",
+                  primary: "#678aff",
+                  neutral80: "#fff",
+                  neutral20: "#444",
+                  neutral30: "#678aff"
+                }
+              })}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setSelectedYears(yearLabels)}
+            style={{ marginLeft: "8px" }}
+          >
+            Select All
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedYears([])}
+            style={{ marginLeft: "4px" }}
+          >
+            Clear All
+          </button>
+        </div>
         <label>
           Start Date:{' '}
           <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
@@ -245,10 +382,10 @@ useEffect(() => {
           // Group registered members by level
           const levelGroups: Record<string, typeof registeredMembers> = {};
           registeredMembers.forEach(m => { // Removed .filter(m => m.total > 0) here
-              const level = m.level || 'Unspecified Level';
-              if (!levelGroups[level]) levelGroups[level] = [];
-              levelGroups[level].push(m);
-            });
+            const level = m.level || 'Unspecified Level';
+            if (!levelGroups[level]) levelGroups[level] = [];
+            levelGroups[level].push(m);
+          });
           // Render a table for each level group
           return Object.entries(levelGroups).map(([level, members]) => (
             <div key={level} style={{ marginBottom: '2rem' }}>
@@ -259,26 +396,28 @@ useEffect(() => {
                     <th>#</th>
                     <th>Full Name</th>
                     <th>AoC Username</th>
-                    {showYearlyBreakdown && yearLabels.map((label) => (
-                      <th key={`year-col-${label}`}>Stars {label}</th>
-                    ))}
+                    {showYearlyBreakdown &&
+                      selectedYears.map((label) => (
+                        <th key={`year-col-${label}`}>Stars {label}</th>
+                      ))}
                     <th>Total Stars</th>
                   </tr>
                 </thead>
                 <tbody>
                   {members
-                    .filter(m => m.total > 0) // Filter for members with stars here
+                    .filter(m => m.total > 0) // Only rows with stars in selected years
                     .map((m, i) => (
-                    <tr key={m.id}>
-                      <td>{i + 1}</td>
-                      <td className={i < 3 ? 'gold-text' : undefined}>{m.fullName}</td>
-                      <td className={i < 3 ? 'gold-text' : undefined}>{m.name}</td>
-                      {showYearlyBreakdown && m.perYear.map((stars, idx) => (
-                        <td key={`year-${yearLabels[idx]}`} className={i < 3 ? 'gold-text' : undefined}>{stars}</td>
-                      ))}
-                      <td className={i < 3 ? 'gold-text' : undefined} onClick={() => setShowYearlyBreakdown(!showYearlyBreakdown)}>{m.total}</td>
-                    </tr>
-                  ))}
+                      <tr key={m.id}>
+                        <td>{i + 1}</td>
+                        <td className={i < 3 ? 'gold-text' : undefined}>{m.fullName}</td>
+                        <td className={i < 3 ? 'gold-text' : undefined}>{m.name}</td>
+                        {showYearlyBreakdown &&
+                          m.filteredPerYear.map((stars: number, idx: number) => (
+                            <td key={`year-${selectedYears[idx]}`} className={i < 3 ? 'gold-text' : undefined}>{stars}</td>
+                          ))}
+                        <td className={i < 3 ? 'gold-text' : undefined} onClick={() => setShowYearlyBreakdown(!showYearlyBreakdown)}>{m.total}</td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             </div>
@@ -291,9 +430,10 @@ useEffect(() => {
             <tr className="header-row">
               <th>#</th>
               <th>Name</th>
-              {showYearlyBreakdown && yearLabels.map((label) => (
-                <th key={`year-col-${label}`}>Stars {label}</th>
-              ))}
+              {showYearlyBreakdown &&
+                selectedYears.map((label) => (
+                  <th key={`year-col-${label}`}>Stars {label}</th>
+                ))}
               <th>Total Stars</th>
             </tr>
           </thead>
@@ -304,9 +444,10 @@ useEffect(() => {
                 <tr key={m.id}>
                   <td>{i + 1}</td>
                   <td>{m.name}</td>
-                  {showYearlyBreakdown && m.perYear.map((stars, idx) => (
-                    <td key={`year-${yearLabels[idx]}`} className={i < 3 ? 'gold-text' : undefined}>{stars}</td>
-                  ))}
+                  {showYearlyBreakdown &&
+                    m.filteredPerYear.map((stars: number, idx: number) => (
+                      <td key={`year-${selectedYears[idx]}`} className={i < 3 ? 'gold-text' : undefined}>{stars}</td>
+                    ))}
                   <td onClick={() => setShowYearlyBreakdown(!showYearlyBreakdown)}>{m.total}</td>
                 </tr>
               ))}
